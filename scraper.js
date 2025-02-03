@@ -1,36 +1,47 @@
 import puppeteer from 'puppeteer';
+import express from 'express';
+import cors from 'cors';
 
-async function scrapeTacobot(steamId) {
+const app = express();
+app.use(express.json());
+app.use(cors());
+
+// ✅ Test Route
+app.get('/', (req, res) => {
+    res.send("✅ Scraper API is running on Render!");
+});
+
+// ✅ Tacobot Check API
+app.post('/check-tacobot', async (req, res) => {
+    const { steamId } = req.body;
+    if (!steamId) return res.status(400).json({ error: "Missing Steam ID" });
+
+    console.log(`🔍 Checking Tacobot for Steam ID: ${steamId}`);
+
     const browser = await puppeteer.launch({ 
-        headless: false, // Keep visible for debugging, change to true when done
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
+        headless: true, 
+        args: ['--no-sandbox', '--disable-setuid-sandbox'] 
     });
 
     const page = await browser.newPage();
     await page.goto('https://tacobot.tf', { waitUntil: 'networkidle2' });
 
-    // ✅ Wait for the search field to appear
     await page.waitForSelector('.filter-name-input', { visible: true, timeout: 10000 });
-
-    // ✅ Type the Steam ID into the search field
     await page.type('.filter-name-input', steamId);
     await page.keyboard.press('Enter');
 
-    // ✅ Use setTimeout() instead of waitForTimeout()
     await new Promise(resolve => setTimeout(resolve, 5000));
 
-    // ✅ Check if a row exists with the searched Steam ID
     const foundUser = await page.$(`div[row-id="${steamId}"]`);
+    const isListed = foundUser ? true : false;
 
-    if (foundUser) {
-        console.log(`🚨 ALERT: Steam ID ${steamId} is LISTED on Tacobot! 🚨`);
-    } else {
-        console.log(`✅ Steam ID ${steamId} is NOT listed.`);
-    }
+    console.log(isListed ? `🚨 ALERT: Steam ID ${steamId} is LISTED! 🚨` : `✅ Steam ID ${steamId} is NOT listed.`);
 
     await browser.close();
-}
 
-// Run the scraper
-scrapeTacobot("76561198326804371");
-//scrapeTacobot("76561198043439624");
+    res.json({ steamId, isListed });
+});
+
+// ✅ Start Express Server
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => console.log(`🚀 Scraper API Running on Port ${PORT}`));
