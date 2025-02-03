@@ -5,7 +5,7 @@
   "main": "scraper.js",
   "type": "module",
   "scripts": {
-    "start": "node server.js"
+    "start": "node scraper.js"
   },
   "dependencies": {
     "puppeteer": "^20.7.2",
